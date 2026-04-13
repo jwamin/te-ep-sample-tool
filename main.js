@@ -1,8 +1,6 @@
 const {
   app,
   BrowserWindow,
-  nativeImage,
-  Tray,
   ipcMain,
   dialog,
   clipboard,
@@ -14,42 +12,55 @@ const fs = require('node:fs/promises')
 
 const TING_GUIDE_EP2350 = 'https://teenage.engineering/guides/ep-2350'
 
+const APP_ICON = app.isPackaged ? path.join(process.resourcesPath, 'app.asar.unpacked', 'res', 'icon.png') : path.join(__dirname, 'res', 'icon.png')
+
 const config = {
   url: 'https://teenage.engineering/apps/ep-sample-tool',
   update: 'https://teenage.engineering/apps/update',
   dx: 960,
   dy: 720,
-  preloadjs: 'preload.js',
-  icon: 'res/icon.png'
+  preloadjs: 'preload.js'
 }
 
+/** @type {{ name: string, code: string, slug: string }[]} */
 const DEVICE_GUIDES = [
-  ['TP-7', 'tp-7'],
-  ['OP-XY', 'op-xy'],
-  ['EP-1320', 'ep-1320'],
-  ['EP-133', 'ep-133'],
-  ['EP-2350', 'ep-2350'],
-  ['TX-6', 'tx-6'],
-  ['CM-15', 'cm-15']
+  { name: 'TP-7 field recorder', code: 'TP-7', slug: 'tp-7' },
+  { name: 'OP-XY', code: 'OP-XY', slug: 'op-xy' },
+  { name: 'EP-1320', code: 'EP-1320', slug: 'ep-1320' },
+  { name: 'EP-133', code: 'EP-133', slug: 'ep-133' },
+  { name: 'EP-2350 ting', code: 'EP-2350', slug: 'ep-2350' },
+  { name: 'TX-6', code: 'TX-6', slug: 'tx-6' },
+  { name: 'CM-15', code: 'CM-15', slug: 'cm-15' },
+  { name: 'OP-1 original', code: 'OP-1', slug: 'op-1/original' }
 ]
 
-const createWindow = (icon,url) => {
-    
-    const win = new BrowserWindow({
-        width: config.dx,
-        height: config.dy,
-        webPreferences: {
-            preload: path.join(__dirname, config.preloadjs)
-        },
-        icon: icon
-    })
-    
-    win.loadURL(url);
+/** Menu label: prefer product name; add (code) only when the name does not already carry the code clearly. */
+function deviceGuideMenuLabel ({ name, code }) {
+  const n = String(name).trim()
+  const c = String(code).trim()
+  if (!c) return n
+  const nl = n.toLowerCase()
+  const cl = c.toLowerCase()
+  if (nl === cl || nl.startsWith(`${cl} `)) return n
+  return `${n} (${c})`
+}
+
+const createWindow = (url) => {
+  const win = new BrowserWindow({
+    width: config.dx,
+    height: config.dy,
+    webPreferences: {
+      preload: path.join(__dirname, config.preloadjs)
+    },
+    icon: APP_ICON
+  })
+
+  win.loadURL(url)
 }
 
 let tingConfigWindow = null
 
-function openTingConfigWindow (appIcon) {
+function openTingConfigWindow () {
   if (tingConfigWindow && !tingConfigWindow.isDestroyed()) {
     tingConfigWindow.focus()
     return
@@ -66,7 +77,7 @@ function openTingConfigWindow (appIcon) {
       nodeIntegration: false,
       sandbox: true
     },
-    icon: appIcon
+    icon: APP_ICON
   })
   tingConfigWindow.on('closed', () => {
     tingConfigWindow = null
@@ -78,20 +89,19 @@ const template = [
   ...(process.platform === 'darwin'
     ? [{ role: 'appMenu' }]
     : []),
-  { role: 'fileMenu', 
+  { role: 'fileMenu',
     submenu: [
       {
         label: 'Update Tool',
         click: async () => {
-          const appIcon = nativeImage.createFromPath(config.icon)
-          createWindow(appIcon, config.update)
+          createWindow(config.update)
         }
       },
       { type: 'separator' },
       {
         label: 'Ting EP-2350 config builder…',
         click: () => {
-          openTingConfigWindow(nativeImage.createFromPath(config.icon))
+          openTingConfigWindow()
         }
       }
     ]},
@@ -103,19 +113,16 @@ const template = [
     submenu: [
       {
         label: 'Device guides',
-        submenu: DEVICE_GUIDES.map(([label, slug]) => ({
-          label,
+        submenu: DEVICE_GUIDES.map((g) => ({
+          label: deviceGuideMenuLabel(g),
           click: () => {
-            shell.openExternal(`https://teenage.engineering/guides/${slug}`)
+            shell.openExternal(`https://teenage.engineering/guides/${g.slug}`)
           }
         }))
       }
     ]
   }
 ]
-
-
-
 
 ipcMain.handle('ting-config:pick-wav', async (event) => {
   const win = BrowserWindow.fromWebContents(event.sender)
@@ -169,19 +176,14 @@ ipcMain.handle('ting-config:open-guide', () => {
 app.whenReady().then(() => {
   console.log('Hello from Electron 👋')
   console.log(`Loading ${config.url}...`)
-  const appIcon = nativeImage.createFromPath(config.icon)
-  app.dock?.setIcon(appIcon)
   const menu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(menu)
-  createWindow(appIcon, config.url)
+  createWindow(config.url)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow(appIcon, config.url)
+      createWindow(config.url)
     }
-    app.setAboutPanelOptions({
-      iconPath: config.icon
-    })
   })
 
   app.on('window-all-closed', () => {

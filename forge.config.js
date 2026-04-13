@@ -1,10 +1,13 @@
+const path = require('node:path');
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
 module.exports = {
   packagerConfig: {
-    asar: true,
-    icon: 'res' // no file extension required
+    // Whole res/ tree outside asar so nativeImage reads PNG/icns from real disk paths.
+    asar: { unpackDir: 'res' },
+    // Absolute base path so packager always finds res/icon.icns (darwin) / .ico (win)
+    icon: path.resolve(__dirname, 'res', 'icon'),
   },
   rebuildConfig: {},
   makers: [

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>te-tool icon</title>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1c1b18"/>
+      <stop offset="100%" stop-color="#0f0f0d"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f07020"/>
+      <stop offset="100%" stop-color="#d94e08"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="228" ry="228" fill="url(#bg)"/>
+  <rect x="48" y="48" width="928" height="928" rx="188" ry="188" fill="none" stroke="#2e2d29" stroke-width="4"/>
+  <g fill="#4a4843" opacity="0.45">
+    <circle cx="256" cy="256" r="14"/>
+    <circle cx="512" cy="256" r="14"/>
+    <circle cx="768" cy="256" r="14"/>
+    <circle cx="256" cy="512" r="14"/>
+    <circle cx="768" cy="512" r="14"/>
+    <circle cx="256" cy="768" r="14"/>
+    <circle cx="512" cy="768" r="14"/>
+    <circle cx="768" cy="768" r="14"/>
+  </g>
+  <rect x="192" y="432" width="640" height="112" rx="20" fill="url(#accent)"/>
+  <rect x="320" y="592" width="384" height="36" rx="10" fill="#3d3c38" opacity="0.95"/>
+</svg>
