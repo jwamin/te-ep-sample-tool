@@ -14,6 +14,15 @@ const config = {
     icon:"res/icon.png"
 }
 
+const DEVICE_GUIDES = [
+  ['TP-7', 'tp-7'],
+  ['OP-XY', 'op-xy'],
+  ['EP-1320', 'ep-1320'],
+  ['EP-133', 'ep-133'],
+  ['TX-6', 'tx-6'],
+  ['CM-15', 'cm-15']
+]
+
 const createWindow = (icon,url) => {
     
     const win = new BrowserWindow({
@@ -48,7 +57,18 @@ const template = [
   { role: 'viewMenu' },
   { role: 'windowMenu' },
   {
-    role: 'help'
+    role: 'help',
+    submenu: [
+      {
+        label: 'Device guides',
+        submenu: DEVICE_GUIDES.map(([label, slug]) => ({
+          label,
+          click: () => {
+            shell.openExternal(`https://teenage.engineering/guides/${slug}`)
+          }
+        }))
+      }
+    ]
   }
 ]
 
