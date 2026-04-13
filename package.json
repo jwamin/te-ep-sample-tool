@@ -1,7 +1,8 @@
 {
-  "name": "ep-sample-tool",
+  "name": "te-tool",
+  "productName": "te-tool",
   "version": "0.0.1",
-  "description": "Native wrapper for TE EP Sample Tool",
+  "description": "Native wrapper for Teenage Engineering web tools (te-tool)",
   "main": "main.js",
   "scripts": {
     "start": "electron-forge start",
