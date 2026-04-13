@@ -1,10 +1,10 @@
-# EP Sample Tool
+# te-tool
 
-### Electron Wrapper For Teenage Engineering EP Series Sample Tool
+### Electron wrapper for Teenage Engineering web apps
 
-https://teenage.engineering/apps/ep-sample-tool 
+https://teenage.engineering/apps/ep-sample-tool
 
-![Electron EP Sample Tool Screenshot](res/el-ep-sample.png)
+![te-tool screenshot](res/el-ep-sample.png)
 
 #### Getting Started
 
