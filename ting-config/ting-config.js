@@ -1,6 +1,9 @@
 /* global tingConfig */
 
-const GUIDE_URL = 'https://teenage.engineering/guides/ep-2350'
+/**
+ * Effect parameter ranges follow EP-2350 guide §7.7 (teenage.engineering/guides/ep-2350).
+ * UI uses sliders + selects only (no free numeric fields on effects).
+ */
 
 const PLAYMODES = [
   { value: 'oneshot', label: 'oneshot' },
@@ -10,8 +13,8 @@ const PLAYMODES = [
 
 const EFFECT_OPTIONS = [
   { type: 'SAMPLE', label: 'SAMPLE' },
-  { type: 'DIST', label: 'DIST (distortion)' },
-  { type: 'DELAY', label: 'DELAY (echo)' },
+  { type: 'DIST', label: 'DIST' },
+  { type: 'DELAY', label: 'DELAY' },
   { type: 'REVERB', label: 'REVERB' },
   { type: 'LOWPASS', label: 'LOWPASS' },
   { type: 'HARMONY', label: 'HARMONY' },
@@ -19,30 +22,114 @@ const EFFECT_OPTIONS = [
   { type: 'SSB', label: 'SSB' }
 ]
 
-const DEFAULT_PARAMS = {
-  SAMPLE: {},
-  DIST: { amount: 10, mix: 0.5, 'lowpass-cutoff': 1, 'highpass-cutoff': 0 },
+/** @type {Record<string, { params: Array<{ key: string, label: string, min: number, max: number, step: number, default: number }>, bus: boolean }>} */
+const EFFECT_SCHEMA = {
+  SAMPLE: {
+    params: [
+      { key: 'speed', label: 'Speed', min: 0, max: 4, step: 0.05, default: 1 },
+      { key: 'pitch', label: 'Pitch (st)', min: -24, max: 24, step: 0.5, default: 0 },
+      { key: 'level', label: 'Level', min: 0, max: 1, step: 0.02, default: 1 },
+      { key: 'balance', label: 'Balance', min: 0, max: 1, step: 0.02, default: 0.5 }
+    ],
+    bus: true
+  },
+  DIST: {
+    params: [
+      { key: 'amount', label: 'Amount', min: 0, max: 40, step: 0.5, default: 10 },
+      { key: 'mix', label: 'Mix', min: 0, max: 1, step: 0.02, default: 0.5 },
+      { key: 'lowpass-cutoff', label: 'Low-pass', min: 0, max: 1, step: 0.01, default: 1 },
+      { key: 'highpass-cutoff', label: 'High-pass', min: 0, max: 1, step: 0.01, default: 0 }
+    ],
+    bus: true
+  },
   DELAY: {
-    time: 0.5,
-    'lowpass-cutoff': 1,
-    'highpass-cutoff': 0,
-    'wet-level': 0.3,
-    'dry-level': 0.7,
-    echo: 0.3,
-    'cross-feed': 0,
-    balance: 0.5
+    params: [
+      { key: 'time', label: 'Time (decay)', min: 0, max: 1.1, step: 0.01, default: 0.5 },
+      { key: 'lowpass-cutoff', label: 'Low-pass', min: 0, max: 1, step: 0.01, default: 1 },
+      { key: 'highpass-cutoff', label: 'High-pass', min: 0, max: 1, step: 0.01, default: 0 },
+      { key: 'wet-level', label: 'Wet', min: 0, max: 1, step: 0.02, default: 0.3 },
+      { key: 'dry-level', label: 'Dry', min: 0, max: 1, step: 0.02, default: 0.7 },
+      { key: 'echo', label: 'Echo feedback', min: 0, max: 1, step: 0.02, default: 0.3 },
+      { key: 'cross-feed', label: 'Cross-feed', min: 0, max: 1, step: 0.02, default: 0 },
+      { key: 'balance', label: 'Balance', min: 0, max: 1, step: 0.02, default: 0.5 }
+    ],
+    bus: true
   },
   REVERB: {
-    time: 0.5,
-    'wet-level': 0.35,
-    'dry-level': 0.65,
-    'spring-mix': 0.2,
-    'highpass-cutoff': 0
+    params: [
+      { key: 'dry-level', label: 'Dry', min: 0, max: 1, step: 0.02, default: 0.65 },
+      { key: 'wet-level', label: 'Wet', min: 0, max: 1, step: 0.02, default: 0.35 },
+      { key: 'time', label: 'Time', min: 0, max: 1, step: 0.02, default: 0.5 },
+      { key: 'spring-mix', label: 'Spring mix', min: 0, max: 1, step: 0.02, default: 0.2 },
+      { key: 'highpass-cutoff', label: 'High-pass', min: 0, max: 1, step: 0.01, default: 0 }
+    ],
+    bus: true
   },
-  LOWPASS: { cutoff: 0.5 },
-  HARMONY: { 'dry-level': 0.8, pitch: 1, 'lowpass-cutoff': 1, 'highpass-cutoff': 0 },
-  RING: { frequency: 440, mix: 0.3 },
-  SSB: { frequency: 2000 }
+  LOWPASS: {
+    params: [{ key: 'cutoff', label: 'Cutoff', min: 0, max: 1, step: 0.01, default: 0.5 }],
+    bus: true
+  },
+  HARMONY: {
+    params: [
+      { key: 'dry-level', label: 'Dry', min: 0, max: 1, step: 0.02, default: 0.8 },
+      { key: 'pitch', label: 'Pitch', min: 0.5, max: 2, step: 0.02, default: 1 },
+      { key: 'lowpass-cutoff', label: 'Low-pass', min: 0, max: 1, step: 0.01, default: 1 },
+      { key: 'highpass-cutoff', label: 'High-pass', min: 0, max: 1, step: 0.01, default: 0 }
+    ],
+    bus: true
+  },
+  RING: {
+    params: [
+      { key: 'frequency', label: 'Frequency (Hz)', min: 0, max: 20000, step: 10, default: 440 },
+      { key: 'mix', label: 'Mix', min: 0, max: 1, step: 0.02, default: 0.3 }
+    ],
+    bus: true
+  },
+  SSB: {
+    params: [{ key: 'frequency', label: 'Frequency (Hz)', min: -20000, max: 20000, step: 50, default: 0 }],
+    bus: true
+  }
+}
+
+function getParamSpec (type, key) {
+  const list = EFFECT_SCHEMA[type]?.params || []
+  return list.find((p) => p.key === key)
+}
+
+function clampToSpec (type, key, val) {
+  const spec = getParamSpec(type, key)
+  if (!spec) return Number(val) || 0
+  let v = Number(val)
+  if (!Number.isFinite(v)) v = spec.default
+  const { min, max, step } = spec
+  v = Math.min(max, Math.max(min, v))
+  if (step > 0) {
+    v = Math.round((v - min) / step) * step + min
+    v = Math.min(max, Math.max(min, v))
+  }
+  return v
+}
+
+function getDefaultParams (type) {
+  const out = {}
+  for (const p of EFFECT_SCHEMA[type].params) {
+    out[p.key] = p.default
+  }
+  return out
+}
+
+function getDefaultEffect (type) {
+  return { type, params: getDefaultParams(type), bus: null }
+}
+
+function normalizeEffect (eff) {
+  const t = EFFECT_SCHEMA[eff.type] ? eff.type : 'SAMPLE'
+  const params = { ...getDefaultParams(t), ...(eff.params || {}) }
+  for (const p of EFFECT_SCHEMA[t].params) {
+    params[p.key] = clampToSpec(t, p.key, params[p.key])
+  }
+  const bus = eff.bus === 1 || eff.bus === 2 ? eff.bus : null
+  return { type: t, params, bus }
 }
 
 function basename (p) {
@@ -65,7 +152,7 @@ function createPreset (pos) {
     name: `Preset ${pos + 1}`,
     comment: '',
     extraMerge: '',
-    effects: [{ type: 'SAMPLE', params: { ...DEFAULT_PARAMS.SAMPLE } }]
+    effects: [getDefaultEffect('SAMPLE')]
   }
 }
 
@@ -75,6 +162,9 @@ const state = {
   activePreset: 0
 }
 
+/** @type {{ fromIndex: number, pointerId: number } | null} */
+let graphDrag = null
+
 function setStatus (msg, kind) {
   const el = document.getElementById('status')
   el.textContent = msg || ''
@@ -83,14 +173,26 @@ function setStatus (msg, kind) {
   if (kind === 'err') el.classList.add('err')
 }
 
-function effectToJson ({ type, params }) {
+function formatParamValue (v, spec) {
+  if (spec.max > 500 && spec.step >= 10) return String(Math.round(v))
+  const d = spec.step >= 1 ? 0 : spec.step >= 0.1 ? 1 : spec.step >= 0.01 ? 2 : 3
+  return Number(v).toFixed(d)
+}
+
+function effectToJson ({ type, params, bus }) {
   const o = { effect: type }
-  if (type === 'SAMPLE') return o
-  for (const [k, v] of Object.entries(params)) {
-    const n = typeof v === 'number' ? v : Number(v)
-    if (!Number.isFinite(n)) continue
-    o[k] = n
+  const spec = EFFECT_SCHEMA[type]
+  if (type === 'SAMPLE') {
+    for (const p of spec.params) {
+      const v = clampToSpec(type, p.key, params[p.key])
+      if (Math.abs(v - p.default) > 1e-5) o[p.key] = v
+    }
+  } else {
+    for (const p of spec.params) {
+      o[p.key] = clampToSpec(type, p.key, params[p.key])
+    }
   }
+  if (bus === 1 || bus === 2) o.BUS = bus
   return o
 }
 
@@ -116,7 +218,7 @@ function buildConfig (opts) {
   }
 
   const presets = state.presets.map((p) => {
-    const list = p.effects.map(effectToJson)
+    const list = p.effects.map((e) => effectToJson(normalizeEffect(e)))
     const base = { pos: p.pos, list }
     if (p.name && String(p.name).trim()) base.name = String(p.name).trim()
     if (p.comment && String(p.comment).trim()) base.comment = String(p.comment).trim()
@@ -235,94 +337,166 @@ function renderTabs () {
   }
 }
 
-function paramKeysFor (type) {
-  const d = DEFAULT_PARAMS[type]
-  return Object.keys(d)
+function renderSliderRow (type, eff, idx, spec) {
+  const v = clampToSpec(type, spec.key, eff.params[spec.key])
+  eff.params[spec.key] = v
+  const id = `fx-${idx}-${spec.key.replace(/[^a-z0-9]/gi, '-')}`
+  return `
+    <div class="fx-param" data-pidx="${idx}">
+      <label for="${id}">${escapeHtml(spec.label)}</label>
+      <div class="fx-param-row">
+        <input type="range" id="${id}" data-fx="${idx}" data-key="${escapeHtml(spec.key)}"
+          min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${v}" />
+        <span class="fx-param-val" data-val-for="${id}">${formatParamValue(v, spec)}</span>
+      </div>
+    </div>`
 }
 
-function renderPresetEditor () {
-  const root = document.getElementById('preset-panel')
-  const p = state.presets[state.activePreset]
-  const effectsHtml = p.effects
-    .map((eff, idx) => {
-      const opts = EFFECT_OPTIONS.map(
-        (o) => `<option value="${o.type}" ${eff.type === o.type ? 'selected' : ''}>${escapeHtml(o.label)}</option>`
-      ).join('')
-      const keys = paramKeysFor(eff.type)
-      const paramsHtml = keys
-        .map((key) => {
-          const v = eff.params[key] != null ? eff.params[key] : DEFAULT_PARAMS[eff.type][key]
-          return `
-          <label>${escapeHtml(key)}
-            <input type="number" step="any" data-preset="${p.pos}" data-fx="${idx}" data-param="${escapeHtml(key)}" value="${v}" />
-          </label>`
-        })
-        .join('')
-      return `
-      <div class="effect-row" data-preset="${p.pos}" data-fx="${idx}">
-        <div class="effect-row-head">
-          <select class="fx-type" data-preset="${p.pos}" data-fx="${idx}" aria-label="Effect type">${opts}</select>
-          <button type="button" class="small move-fx-up" data-preset="${p.pos}" data-fx="${idx}">Up</button>
-          <button type="button" class="small move-fx-down" data-preset="${p.pos}" data-fx="${idx}">Down</button>
-          <button type="button" class="small danger rm-fx" data-preset="${p.pos}" data-fx="${idx}">Remove</button>
-        </div>
-        ${keys.length ? `<div class="param-grid">${paramsHtml}</div>` : '<p class="empty-hint" style="margin:0;color:var(--muted);font-size:0.8rem;">No extra parameters.</p>'}
-      </div>`
-    })
-    .join('')
+function renderBusSelect (eff, idx) {
+  const b = eff.bus
+  return `
+    <div class="fx-bus-label">Bus routing (§7.10)</div>
+    <div class="fx-param-row">
+      <select data-fx="${idx}" data-bus-select aria-label="Bus routing">
+        <option value="" ${b == null ? 'selected' : ''}>Main (serial)</option>
+        <option value="1" ${b === 1 ? 'selected' : ''}>Bus 1</option>
+        <option value="2" ${b === 2 ? 'selected' : ''}>Bus 2</option>
+      </select>
+    </div>`
+}
 
-  root.innerHTML = `
-    <div class="preset-card">
-      <div class="field">
-        <label>Preset name</label>
-        <input type="text" class="preset-name" data-preset="${p.pos}" value="${escapeHtml(p.name)}" />
+function renderEffectNode (eff, idx) {
+  eff = normalizeEffect(eff)
+  const type = eff.type
+  const schema = EFFECT_SCHEMA[type]
+  const opts = EFFECT_OPTIONS.map(
+    (o) => `<option value="${o.type}" ${eff.type === o.type ? 'selected' : ''}>${escapeHtml(o.label)}</option>`
+  ).join('')
+  const paramsHtml = schema.params.map((spec) => renderSliderRow(type, eff, idx, spec)).join('')
+  const busHtml = schema.bus ? renderBusSelect(eff, idx) : ''
+
+  return `
+    <div class="fx-insert" data-insert="${idx}" aria-label="Insert before this node"></div>
+    <div class="fx-node" data-fx="${idx}" data-preset-pos="">
+      <div class="fx-node-port fx-node-port-in" aria-hidden="true">
+        <button type="button" tabindex="-1" aria-label="Signal in"></button>
       </div>
-      <div class="field">
-        <label>Comment (optional)</label>
-        <input type="text" class="preset-comment" data-preset="${p.pos}" value="${escapeHtml(p.comment)}" />
+      <div class="fx-node-core">
+        <div class="fx-node-handle" data-drag-handle data-fx="${idx}">
+          <span class="fx-grip" aria-hidden="true">⋮⋮</span>
+          <select class="fx-node-type" data-fx="${idx}" aria-label="Effect type">${opts}</select>
+          <div class="fx-node-actions">
+            <button type="button" class="small danger rm-fx" data-fx="${idx}" title="Remove">×</button>
+          </div>
+        </div>
+        ${paramsHtml}
+        ${busHtml}
       </div>
-      <h2 style="margin-top:8px">Effect chain</h2>
-      ${effectsHtml}
-      <div class="row-actions">
-        <button type="button" class="small" id="btn-add-fx">Add effect</button>
-        <button type="button" class="small" id="btn-dup-preset">Duplicate to next slot</button>
-      </div>
-      <div class="field" style="margin-top:16px">
-        <label>Merge JSON (optional <code>handle</code>, <code>shake</code>, <code>lfo</code>, …)</label>
-        <textarea class="preset-extra" data-preset="${p.pos}" spellcheck="false" placeholder='{ "handle": { "row": 0, "param": "cutoff", "depth": 0.8 } }'>${escapeHtml(p.extraMerge)}</textarea>
+      <div class="fx-node-port fx-node-port-out" aria-hidden="true">
+        <button type="button" tabindex="-1" aria-label="Signal out"></button>
       </div>
     </div>
   `
+}
 
-  root.querySelector('.preset-name').addEventListener('input', (e) => {
-    p.name = e.target.value
-    updatePreview()
+function redrawFxWires (root) {
+  const graph = root.querySelector('.fx-graph')
+  const svg = root.querySelector('.fx-graph-svg')
+  if (!graph || !svg) return
+  const gRect = graph.getBoundingClientRect()
+  if (gRect.width < 2 || gRect.height < 2) return
+  svg.setAttribute('width', String(Math.ceil(gRect.width)))
+  svg.setAttribute('height', String(Math.ceil(gRect.height)))
+  const nodes = graph.querySelectorAll('.fx-node')
+  const paths = []
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const outEl = nodes[i].querySelector('.fx-node-port-out button')
+    const inEl = nodes[i + 1].querySelector('.fx-node-port-in button')
+    if (!outEl || !inEl) continue
+    const o = outEl.getBoundingClientRect()
+    const inn = inEl.getBoundingClientRect()
+    const x1 = o.left + o.width / 2 - gRect.left
+    const y1 = o.top + o.height / 2 - gRect.top
+    const x2 = inn.left + inn.width / 2 - gRect.left
+    const y2 = inn.top + inn.height / 2 - gRect.top
+    const mid = (x1 + x2) / 2
+    paths.push(`M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${mid.toFixed(1)} ${y1.toFixed(1)}, ${mid.toFixed(1)} ${y2.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`)
+  }
+  svg.innerHTML = paths.map((d) => `<path d="${d}" />`).join('')
+}
+
+function queueWireRedraw (root) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => redrawFxWires(root))
   })
-  root.querySelector('.preset-comment').addEventListener('input', (e) => {
-    p.comment = e.target.value
+}
+
+function reorderEffects (arr, from, insertBefore) {
+  const next = [...arr]
+  const [item] = next.splice(from, 1)
+  let dest = insertBefore
+  if (from < insertBefore) dest -= 1
+  dest = Math.max(0, Math.min(next.length, dest))
+  next.splice(dest, 0, item)
+  return next
+}
+
+function clearInsertHover (root) {
+  root.querySelectorAll('.fx-insert--hover').forEach((el) => el.classList.remove('fx-insert--hover'))
+}
+
+function wireEffectGraph (root, p) {
+  const graph = root.querySelector('.fx-graph')
+  if (!graph) return
+
+  const panel = document.getElementById('preset-panel')
+  if (panel._fxOnResize) window.removeEventListener('resize', panel._fxOnResize)
+  panel._fxOnResize = () => queueWireRedraw(root)
+  window.addEventListener('resize', panel._fxOnResize)
+
+  const track = root.querySelector('.fx-graph-track')
+  if (track) {
+    if (track._onScroll) track.removeEventListener('scroll', track._onScroll)
+    track._onScroll = () => queueWireRedraw(root)
+    track.addEventListener('scroll', track._onScroll, { passive: true })
+  }
+
+  const onSlider = (e) => {
+    const inp = e.target.closest('input[type="range"][data-fx]')
+    if (!inp) return
+    const idx = Number(inp.dataset.fx)
+    const key = inp.dataset.key
+    const eff = p.effects[idx]
+    const spec = getParamSpec(eff.type, key)
+    if (!spec) return
+    const v = clampToSpec(eff.type, key, inp.value)
+    eff.params[key] = v
+    inp.value = String(v)
+    const id = inp.getAttribute('id')
+    const out = id && root.querySelector(`[data-val-for="${id}"]`)
+    if (out) out.textContent = formatParamValue(v, spec)
     updatePreview()
-  })
-  root.querySelector('.preset-extra').addEventListener('input', (e) => {
-    p.extraMerge = e.target.value
-    updatePreview()
+  }
+
+  root.querySelectorAll('input[type="range"][data-fx]').forEach((inp) => {
+    inp.addEventListener('input', onSlider)
   })
 
-  root.querySelectorAll('.fx-type').forEach((sel) => {
+  root.querySelectorAll('.fx-node-type').forEach((sel) => {
     sel.addEventListener('change', (e) => {
       const idx = Number(e.target.dataset.fx)
-      const type = e.target.value
-      p.effects[idx] = { type, params: deepClone(DEFAULT_PARAMS[type]) }
+      const t = e.target.value
+      p.effects[idx] = getDefaultEffect(t)
       renderPresetEditor()
       updatePreview()
     })
   })
 
-  root.querySelectorAll('.param-grid input').forEach((inp) => {
-    inp.addEventListener('input', (e) => {
+  root.querySelectorAll('[data-bus-select]').forEach((sel) => {
+    sel.addEventListener('change', (e) => {
       const idx = Number(e.target.dataset.fx)
-      const key = e.target.dataset.param
-      const n = Number(e.target.value)
-      p.effects[idx].params[key] = Number.isFinite(n) ? n : e.target.value
+      const v = e.target.value
+      p.effects[idx].bus = v === '' ? null : Number(v)
       updatePreview()
     })
   })
@@ -331,7 +505,7 @@ function renderPresetEditor () {
     btn.addEventListener('click', (e) => {
       const idx = Number(e.currentTarget.dataset.fx)
       if (p.effects.length <= 1) {
-        setStatus('Keep at least one effect row.', 'err')
+        setStatus('Chain needs at least one node.', 'err')
         return
       }
       p.effects.splice(idx, 1)
@@ -340,34 +514,15 @@ function renderPresetEditor () {
     })
   })
 
-  root.querySelectorAll('.move-fx-up').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      const idx = Number(e.currentTarget.dataset.fx)
-      if (idx <= 0) return
-      ;[p.effects[idx - 1], p.effects[idx]] = [p.effects[idx], p.effects[idx - 1]]
-      renderPresetEditor()
-      updatePreview()
-    })
-  })
-
-  root.querySelectorAll('.move-fx-down').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      const idx = Number(e.currentTarget.dataset.fx)
-      if (idx >= p.effects.length - 1) return
-      ;[p.effects[idx + 1], p.effects[idx]] = [p.effects[idx], p.effects[idx + 1]]
-      renderPresetEditor()
-      updatePreview()
-    })
-  })
-
-  root.querySelector('#btn-add-fx').addEventListener('click', () => {
-    const t = 'DELAY'
-    p.effects.push({ type: t, params: deepClone(DEFAULT_PARAMS[t]) })
+  root.querySelector('#btn-add-fx')?.addEventListener('click', () => {
+    const sel = root.querySelector('#add-fx-type')
+    const t = sel && sel.value ? sel.value : 'DELAY'
+    p.effects.push(getDefaultEffect(t))
     renderPresetEditor()
     updatePreview()
   })
 
-  root.querySelector('#btn-dup-preset').addEventListener('click', () => {
+  root.querySelector('#btn-dup-preset')?.addEventListener('click', () => {
     const next = (state.activePreset + 1) % 4
     state.presets[next] = deepClone(state.presets[state.activePreset])
     state.presets[next].pos = next
@@ -377,6 +532,137 @@ function renderPresetEditor () {
     updatePreview()
     setStatus(`Duplicated into preset slot ${next}.`, 'ok')
   })
+
+  let lastInsert = -1
+  const onMove = (ev) => {
+    if (!graphDrag || ev.pointerId !== graphDrag.pointerId) return
+    const inserts = [...root.querySelectorAll('.fx-insert')]
+    let hover = -1
+    let best = Infinity
+    for (const el of inserts) {
+      const r = el.getBoundingClientRect()
+      const cx = (r.left + r.right) / 2
+      const d = Math.abs(ev.clientX - cx)
+      if (d < best) {
+        best = d
+        hover = Number(el.dataset.insert)
+      }
+    }
+    if (hover !== lastInsert) {
+      clearInsertHover(root)
+      const el = inserts.find((x) => Number(x.dataset.insert) === hover)
+      if (el) el.classList.add('fx-insert--hover')
+      lastInsert = hover
+    }
+  }
+
+  root.querySelectorAll('[data-drag-handle]').forEach((handle) => {
+    handle.addEventListener('pointerdown', (ev) => {
+      if (ev.button !== 0) return
+      const fromIndex = Number(handle.dataset.fx)
+      graphDrag = { fromIndex, pointerId: ev.pointerId }
+      graph.classList.add('fx-graph--dragging')
+      const node = root.querySelector(`.fx-node[data-fx="${fromIndex}"]`)
+      if (node) node.classList.add('fx-node--dragging')
+      try {
+        handle.setPointerCapture(ev.pointerId)
+      } catch (_) {}
+      lastInsert = -1
+
+      const finish = (ev2) => {
+        if (!graphDrag || ev2.pointerId !== graphDrag.pointerId) return
+        const from = graphDrag.fromIndex
+        const insertEl = root.querySelector('.fx-insert.fx-insert--hover')
+        let insertBefore = from
+        if (insertEl && insertEl.dataset.insert != null) {
+          insertBefore = Number(insertEl.dataset.insert)
+        }
+        clearInsertHover(root)
+        graph.classList.remove('fx-graph--dragging')
+        const n = root.querySelector(`.fx-node[data-fx="${from}"]`)
+        if (n) n.classList.remove('fx-node--dragging')
+        graphDrag = null
+        try {
+          handle.releasePointerCapture(ev2.pointerId)
+        } catch (_) {}
+        document.removeEventListener('pointermove', onMove)
+        document.removeEventListener('pointerup', finish)
+        document.removeEventListener('pointercancel', finish)
+        if (insertBefore !== from) {
+          p.effects = reorderEffects(p.effects, from, insertBefore)
+          renderPresetEditor()
+          updatePreview()
+        }
+      }
+
+      document.addEventListener('pointermove', onMove)
+      document.addEventListener('pointerup', finish)
+      document.addEventListener('pointercancel', finish)
+    })
+  })
+
+  queueWireRedraw(root)
+}
+
+function renderPresetEditor () {
+  const root = document.getElementById('preset-panel')
+  const p = state.presets[state.activePreset]
+  p.effects = p.effects.map(normalizeEffect)
+
+  const n = p.effects.length
+  const nodesHtml = p.effects.map((eff, idx) => renderEffectNode(eff, idx)).join('')
+  const lastInsert = `<div class="fx-insert" data-insert="${n}" aria-label="Insert after chain"></div>`
+
+  root.innerHTML = `
+    <div class="preset-card">
+      <div class="field">
+        <label for="preset-name-field">Preset name</label>
+        <input type="text" id="preset-name-field" class="preset-name" value="${escapeHtml(p.name)}" />
+      </div>
+      <div class="field">
+        <label for="preset-comment-field">Comment (optional)</label>
+        <input type="text" id="preset-comment-field" class="preset-comment" value="${escapeHtml(p.comment)}" />
+      </div>
+      <h2 style="margin-top:8px">Signal chain</h2>
+      <p class="fx-graph-hint">Drag a node by the <strong>⋮⋮</strong> handle to reorder. Signal flows left → right (guide §7.6).</p>
+      <div class="fx-graph">
+        <svg class="fx-graph-svg" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+        <div class="fx-graph-track">
+          ${nodesHtml}
+          ${lastInsert}
+        </div>
+      </div>
+      <div class="add-node-row">
+        <label for="add-fx-type" class="sr-only">Add effect</label>
+        <select id="add-fx-type" aria-label="Effect to add">
+          ${EFFECT_OPTIONS.map((o) => `<option value="${o.type}">${escapeHtml(o.label)}</option>`).join('')}
+        </select>
+        <button type="button" class="small" id="btn-add-fx">Add node</button>
+        <button type="button" class="small" id="btn-dup-preset">Duplicate to next slot</button>
+      </div>
+      <details class="modulation-details">
+        <summary>Advanced: merge modulation JSON (<code>handle</code>, <code>shake</code>, <code>lfo</code>)</summary>
+        <div class="field" style="margin-top:10px;margin-bottom:0">
+          <textarea class="preset-extra" spellcheck="false" rows="4" placeholder='{ "handle": { "row": 0, "param": "cutoff", "depth": 0.8 } }'>${escapeHtml(p.extraMerge)}</textarea>
+        </div>
+      </details>
+    </div>
+  `
+
+  root.querySelector('#preset-name-field').addEventListener('input', (e) => {
+    p.name = e.target.value
+    updatePreview()
+  })
+  root.querySelector('#preset-comment-field').addEventListener('input', (e) => {
+    p.comment = e.target.value
+    updatePreview()
+  })
+  root.querySelector('.preset-extra').addEventListener('input', (e) => {
+    p.extraMerge = e.target.value
+    updatePreview()
+  })
+
+  wireEffectGraph(root, p)
 }
 
 function wireGlobal () {
