@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EP-2350 ting · config.json</title>
+  <link rel="stylesheet" href="ting-config.css" />
+</head>
+<body>
+  <header>
+    <h1>EP-2350 ting · config.json builder</h1>
+    <p>
+      Based on the
+      <a href="#" id="link-guide">EP-2350 user guide</a>.
+      Edit samples and effect chains, then copy JSON or export for <code>tingdisk</code>.
+    </p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Pack</h2>
+      <div class="field">
+        <label for="pack-name">Pack name (<code>name</code> in JSON)</label>
+        <input type="text" id="pack-name" value="My pack" autocomplete="off" />
+      </div>
+    </section>
+
+    <section>
+      <h2>Samples (drag WAV or browse)</h2>
+      <p style="color: var(--muted); font-size: 0.85rem; margin: 0 0 12px;">
+        On device, files are <code>1.wav</code>–<code>4.wav</code>. Export pack renames copies to match slots.
+      </p>
+      <div class="sample-grid" id="sample-slots"></div>
+    </section>
+
+    <section>
+      <h2>Presets (orange button slots 0–3)</h2>
+      <p style="color: var(--muted); font-size: 0.85rem; margin: 0 0 12px;">
+        Each preset is a <strong>node chain</strong> (signal left → right). Use <strong>SAMPLE</strong> for audio; place it before FX to process samples, or last for dry samples per the guide.
+      </p>
+      <div class="preset-tabs" id="preset-tabs"></div>
+      <div id="preset-panel"></div>
+    </section>
+
+    <section class="preview">
+      <h2>Live JSON</h2>
+      <textarea id="json-preview" readonly spellcheck="false"></textarea>
+    </section>
+  </main>
+
+  <div class="toolbar">
+    <button type="button" class="primary" id="btn-copy">Copy JSON</button>
+    <button type="button" id="btn-save">Save JSON…</button>
+    <button type="button" id="btn-export-pack">Export to folder…</button>
+    <span class="status" id="status"></span>
+  </div>
+
+  <script src="ting-config.js"></script>
+</body>
+</html>
